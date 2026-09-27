@@ -23,9 +23,7 @@ import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -496,56 +494,6 @@ public final class ClientUtils {
             }
         }
         return total;
-    }
-
-    /** An enchant book's real (enchant id, level) identity, read directly from its own NBT - see {@link #resolveEnchantLevel}. */
-    public record EnchantBookInfo(String enchantId, int level) {
-    }
-
-    /**
-     * Reads whichever single enchant/level is on this stack's own NBT {@code enchantments}
-     * compound, without needing to already know which one to look for - companion to
-     * {@link #resolveEnchantLevel} (which requires a known {@code enchantId} up front). Needed
-     * when the identity of a book isn't yet known and must be discovered from the real item
-     * itself rather than guessed from a Bazaar tag name (see the Book Flipper plan: the mapping
-     * from a Bazaar tag's name segment to the NBT enchant-id key has only ever been independently
-     * confirmed for Scuba - {@code "scuba"} - not assumed to generalize to every other enchant).
-     * Returns {@code null} if the stack isn't an enchant book at all.
-     */
-    private static EnchantBookInfo resolveAnyEnchantBookInfo(ItemStack stack) {
-        CustomData customData = stack.get(DataComponents.CUSTOM_DATA);
-        if (customData == null) return null;
-        CompoundTag tag = customData.copyTag();
-        CompoundTag enchantments = tag.getCompoundOrEmpty("enchantments");
-        if (enchantments.isEmpty()) return null;
-        for (String key : enchantments.keySet()) {
-            int level = enchantments.getIntOr(key, -1);
-            if (level > 0) return new EnchantBookInfo(key, level);
-        }
-        return null;
-    }
-
-    /**
-     * Every distinct enchant book currently held in the player's own 36 inventory slots, mapped
-     * to how many of each - meant to be snapshotted before and after an action (e.g. claiming a
-     * buy-order fill) so the caller can diff the two maps and see exactly which book newly
-     * appeared, rather than assuming which one it must have been.
-     */
-    public static Map<EnchantBookInfo, Long> countAllEnchantBooks() {
-        Minecraft client = Minecraft.getInstance();
-        if (client == null || client.player == null) return Map.of();
-
-        Map<EnchantBookInfo, Long> counts = new HashMap<>();
-        Inventory inventory = client.player.getInventory();
-        for (int i = 0; i < 36; i++) {
-            ItemStack stack = inventory.getItem(i);
-            if (stack.isEmpty()) continue;
-            EnchantBookInfo info = resolveAnyEnchantBookInfo(stack);
-            if (info != null) {
-                counts.merge(info, (long) stack.getCount(), Long::sum);
-            }
-        }
-        return counts;
     }
 
     /**

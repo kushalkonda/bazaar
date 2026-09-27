@@ -221,8 +221,8 @@ public final class FlipperEngine {
             ClientUtils.sendMessage("§cCan't start the flipper while recording - run §f/bfm record stop§c first.");
             return false;
         }
-        if (dev.bazaarmacro.craft.LegionCraftScript.isActive()) {
-            ClientUtils.sendMessage("§cThe Legion craft script is running - stop it with §f/bfm legion stop§c first.");
+        if (dev.bazaarmacro.order.FlipTestScript.isActive()) {
+            ClientUtils.sendMessage("§cThe flip test is running - stop it with §f/bfm test stop§c first.");
             return false;
         }
 
@@ -523,13 +523,6 @@ public final class FlipperEngine {
             }
             MacroExecutor.runBlocking(claimClick, new ExecutionContext(), () -> cancelRequested);
         } else {
-            if (buyClaimedQty == 0 && buyNotListedStrikes == 0) {
-                // First-ever ambiguous read on this order: dump the real menu layout to the log
-                // before closing, in case this is actually a wrong-slot bug rather than a
-                // transient render lag - captures the evidence automatically instead of needing
-                // to catch it live in-game.
-                ClientUtils.debugDumpOpenScreen();
-            }
             if (!sellActive) {
                 BazaarOrderFlow.closeScreen("FlipperCloseScreen", () -> cancelRequested);
             }
@@ -815,12 +808,6 @@ public final class FlipperEngine {
                         + ExecutionContext.formatDisplay(sellCollectedProceeds) + "/" + ExecutionContext.formatDisplay(sellProceedsExpected) + ").");
             }
         } else {
-            if (sellCollectedProceeds == 0 && sellNotListedStrikes == 0) {
-                // First-ever ambiguous read on this offer: dump the real menu layout to the log
-                // before closing, in case this is a wrong-slot bug rather than a transient render
-                // lag - captures the evidence automatically instead of needing to catch it live.
-                ClientUtils.debugDumpOpenScreen();
-            }
             BazaarOrderFlow.closeScreen("FlipperCloseScreen", () -> cancelRequested);
 
             sellNotListedStrikes++;

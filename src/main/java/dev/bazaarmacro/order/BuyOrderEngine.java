@@ -15,6 +15,7 @@ import dev.bazaarmacro.macro.MacroStep;
 import dev.bazaarmacro.macro.MacroWorkerThread;
 import dev.bazaarmacro.macro.SlotCoordinate;
 import dev.bazaarmacro.util.ClientUtils;
+import dev.bazaarmacro.util.ErrorReporter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,6 +66,14 @@ public final class BuyOrderEngine {
         long claimedThisOrder;
         int notListedStrikes;
         long nextFillCheckMs;
+        /**
+         * The item's real display name, learned from whichever search candidate actually verified
+         * (e.g. "Legion I"). Only known after a successful search, and null before that - the
+         * product tag is NOT a substitute: passing {@code ENCHANTMENT_ULTIMATE_LEGION_1} where
+         * Hypixel's chat says "Legion I" is exactly the mismatch that made a real, placed order
+         * read as failed and get placed a second time.
+         */
+        String verifiedDisplayName;
 
         Tracked(Request request, LongConsumer onClaimed) {
             this.request = request;
@@ -321,8 +330,12 @@ public final class BuyOrderEngine {
      *
      * <p>Each candidate gets one retry after a longer settle first: a live run showed a search
      * verify correctly, then fail moments later on a re-place right after a rapid claim+cancel -
-     * a screen-not-finished-rendering race, not a wrong search text. Every failed attempt dumps the
-     * real screen so a genuine mismatch is diagnosable from the log without a reproduction.
+     * a screen-not-finished-rendering race, not a wrong search text.
+     *
+     * <p>A failed candidate is not announced or dumped. Retries are routine, and dumping a whole
+     * screen to chat each time buried the actual engine messages in hundreds of slot lines. Only
+     * running out of candidates entirely is a real failure, and that writes one crash report to
+     * disk (which captures the screen, inventory and recent chat anyway) plus a single chat line.
      */
     private int locateVerifiedResult(Tracked t, HypixelBazaarClient.OrderBook book) {
         List<String> candidates = t.request.searchCandidates();
@@ -342,14 +355,18 @@ public final class BuyOrderEngine {
                 MacroWorkerThread.sleep(1500); // real lag, not necessarily a genuine miss
                 slot = findVerifiedSlot(expectedName, book);
             }
-            if (slot >= 0) return slot;
-
-            ClientUtils.sendMessage("§7Search \"" + searchText + "\" didn't yield a confirmed match even after a "
-                    + "retry" + (i == candidates.size() - 1 ? "." : " - trying the next candidate.")
-                    + " Dumping the real screen:");
-            ClientUtils.debugDumpOpenScreen();
+            if (slot >= 0) {
+                t.verifiedDisplayName = ClientUtils.getOpenSlotName(slot).trim();
+                return slot;
+            }
             BazaarOrderFlow.closeScreen(macroPrefix + "Close", cancelled);
         }
+
+        ClientUtils.sendMessage("§cCouldn't find " + t.request.itemTag() + " on the Bazaar under any known search "
+                + "text - see /bfm errors for the full screen dump.");
+        ErrorReporter.report(macroPrefix + "BuyOrderEngine",
+                "No search candidate verified for " + t.request.itemTag(), null,
+                "tried: " + String.join(", ", candidates));
         return -1;
     }
 
@@ -420,15 +437,21 @@ public final class BuyOrderEngine {
         phaseD.steps.add(MacroStep.closeScreen());
         MacroExecutor.runBlocking(phaseD, new ExecutionContext(), cancelled);
 
-        Long byName = OrderSetupWatcher.drainMatchingBuy(t.request.itemTag());
-        if (byName != null) return byName;
-        OrderSetupWatcher.PriceConfirmed byPrice =
-                OrderSetupWatcher.drainMatchingBuyByPrice(targetPrice, priceTolerancePercent);
-        if (byPrice == null) {
-            MacroWorkerThread.sleep(500);
-            byPrice = OrderSetupWatcher.drainMatchingBuyByPrice(targetPrice, priceTolerancePercent);
+        // Both routes are tried, twice, because a missed confirmation is expensive: the engine
+        // concludes the order failed and places a second one, putting the same coins into escrow
+        // twice. Neither drain discards what it doesn't match, so trying one never costs the other
+        // its evidence - see OrderSetupWatcher.drain.
+        for (int attempt = 0; attempt < 2; attempt++) {
+            if (t.verifiedDisplayName != null) {
+                Long byName = OrderSetupWatcher.drainMatchingBuy(t.verifiedDisplayName);
+                if (byName != null) return byName;
+            }
+            OrderSetupWatcher.PriceConfirmed byPrice =
+                    OrderSetupWatcher.drainMatchingBuyByPrice(targetPrice, priceTolerancePercent);
+            if (byPrice != null) return byPrice.quantity();
+            if (attempt == 0) MacroWorkerThread.sleep(500); // let a slow confirmation land
         }
-        return byPrice != null ? byPrice.quantity() : 0;
+        return 0;
     }
 
     /** Reads Hypixel's own stated per-order cap off the amount item's lore and clamps to it - a safety net over our own maths, so a parse miss never blocks the order. */

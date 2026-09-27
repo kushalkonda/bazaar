@@ -391,9 +391,9 @@ public final class SellOrderEngine {
             int slot = ClientUtils.findEnchantBookSlotInOpenScreen(
                     t.listing.enchantId(), t.listing.level(), SCAN_START, SCAN_END);
             if (slot < 0) {
-                ClientUtils.sendMessage("§cCouldn't find the level " + t.listing.level() + " \""
-                        + t.listing.enchantId() + "\" book in the Bazaar screen. Dumping your inventory:");
-                ClientUtils.debugDumpInventory();
+                // Not announced loudly or dumped to chat: the held-count check above already
+                // passed, so this is most often the screen not having finished rendering, and the
+                // next tick retries. A crash report captures the detail if it's real.
                 BazaarOrderFlow.closeScreen(macroPrefix + "Close", cancelled);
                 return 0;
             }

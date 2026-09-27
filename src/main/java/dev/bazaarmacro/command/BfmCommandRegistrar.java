@@ -11,7 +11,7 @@ import dev.bazaarmacro.alerts.PriceAlertManager;
 import dev.bazaarmacro.bazaar.BazaarPriceClient;
 import dev.bazaarmacro.bazaar.HypixelBazaarClient;
 import dev.bazaarmacro.books.BookSniperScanner;
-import dev.bazaarmacro.craft.LegionCraftScript;
+import dev.bazaarmacro.order.FlipTestScript;
 import dev.bazaarmacro.flipper.FlipperCoordinates;
 import dev.bazaarmacro.flipper.FlipperEngine;
 import dev.bazaarmacro.flipper.FlipperManager;
@@ -117,7 +117,7 @@ public final class BfmCommandRegistrar {
                                                         })))))
                         .then(flipCommand())
                         .then(alertCommand())
-                        .then(legionCommand())
+                        .then(testCommand())
                         .then(booksCommand())
                         .then(errorsCommand())
                         .then(ClientCommands.literal("scan").executes(ctx -> {
@@ -239,19 +239,24 @@ public final class BfmCommandRegistrar {
     }
 
     /**
-     * {@code /bfm legion craft} - repeating buy-16/merge-to-level-5/sell-order pipeline for
-     * Ultimate Legion books, see {@link LegionCraftScript}. {@code /bfm legion stop} is a
-     * dedicated stop; {@link #stopWhateverIsActive()}
-     * checks it too.
+     * {@code /bfm test start [qty]} - buys N Summoning Eyes and lists them straight back, on
+     * repeat: the reference exercise for both order engines, see {@link FlipTestScript}. Trades
+     * real coins, so the quantity defaults to 1 and is raised explicitly.
      */
-    private static LiteralArgumentBuilder<FabricClientCommandSource> legionCommand() {
-        return ClientCommands.literal("legion")
-                .then(ClientCommands.literal("craft").executes(ctx -> {
-                    LegionCraftScript.start();
-                    return 1;
-                }))
+    private static LiteralArgumentBuilder<FabricClientCommandSource> testCommand() {
+        return ClientCommands.literal("test")
+                .then(ClientCommands.literal("start")
+                        .executes(ctx -> {
+                            FlipTestScript.start(1);
+                            return 1;
+                        })
+                        .then(ClientCommands.argument("qty", IntegerArgumentType.integer(1))
+                                .executes(ctx -> {
+                                    FlipTestScript.start(IntegerArgumentType.getInteger(ctx, "qty"));
+                                    return 1;
+                                })))
                 .then(ClientCommands.literal("stop").executes(ctx -> {
-                    LegionCraftScript.stop();
+                    FlipTestScript.stop();
                     return 1;
                 }));
     }
@@ -510,8 +515,8 @@ public final class BfmCommandRegistrar {
             FlipperEngine.stop();
             return;
         }
-        if (LegionCraftScript.isActive()) {
-            LegionCraftScript.stop();
+        if (FlipTestScript.isActive()) {
+            FlipTestScript.stop();
             return;
         }
         MacroExecutor.stop();

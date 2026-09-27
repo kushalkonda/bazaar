@@ -29,7 +29,17 @@ public final class OrderSetupWatcher {
     private static final Pattern SELL_SETUP_PATTERN =
             Pattern.compile("(?i)\\[Bazaar] Sell Offer Setup! ([\\d,]+)x (.+?) for ([\\d,]+) coins\\.");
 
-    private record SetupEvent(long quantity, String itemDisplayName, double totalCoins) {
+    /**
+     * How long an unmatched confirmation stays available to a later {@code drain} call before
+     * being discarded as stale. Long enough to outlast a placement's own retry waits, short enough
+     * that a confirmation can never be credited to a completely unrelated order placed later.
+     */
+    private static final long EVENT_TTL_MS = 60_000;
+
+    private record SetupEvent(long quantity, String itemDisplayName, double totalCoins, long receivedAtMs) {
+        boolean isExpired(long now) {
+            return now - receivedAtMs > EVENT_TTL_MS;
+        }
     }
 
     /**
@@ -70,7 +80,7 @@ public final class OrderSetupWatcher {
         try {
             long qty = Long.parseLong(matcher.group(1).replace(",", ""));
             double totalCoins = Double.parseDouble(matcher.group(3).replace(",", ""));
-            target.add(new SetupEvent(qty, matcher.group(2).trim(), totalCoins));
+            target.add(new SetupEvent(qty, matcher.group(2).trim(), totalCoins, System.currentTimeMillis()));
         } catch (NumberFormatException ignored) {
         }
     }
@@ -85,12 +95,27 @@ public final class OrderSetupWatcher {
         return drain(PENDING_SELL, itemDisplayName);
     }
 
+    /**
+     * Consumes only what it actually matches. An earlier version polled the queue empty regardless
+     * of whether anything matched, which caused a real, expensive failure: the buy engine tried a
+     * name match first and a price match as a fallback, but the name attempt silently threw away
+     * the very confirmation the price attempt needed. The engine concluded its order had failed,
+     * placed a second one, and put 38.9M coins into escrow twice for the same 16 books. Anything
+     * that doesn't match is left queued for the next attempt; only genuinely stale events
+     * ({@link #EVENT_TTL_MS}) are dropped, so nothing accumulates forever either.
+     */
     private static Long drain(ConcurrentLinkedQueue<SetupEvent> queue, String itemDisplayName) {
+        long now = System.currentTimeMillis();
         Long result = null;
-        SetupEvent event;
-        while ((event = queue.poll()) != null) {
+        for (java.util.Iterator<SetupEvent> it = queue.iterator(); it.hasNext(); ) {
+            SetupEvent event = it.next();
+            if (event.isExpired(now)) {
+                it.remove();
+                continue;
+            }
             if (itemDisplayName != null && event.itemDisplayName().equalsIgnoreCase(itemDisplayName)) {
                 result = event.quantity();
+                it.remove();
             }
         }
         return result;
@@ -106,15 +131,22 @@ public final class OrderSetupWatcher {
         return drainByPrice(PENDING_SELL, expectedPricePerUnit, tolerancePercent);
     }
 
+    /** Consumes only what it matches - see {@link #drain}. */
     private static PriceConfirmed drainByPrice(ConcurrentLinkedQueue<SetupEvent> queue, double expectedPricePerUnit, double tolerancePercent) {
+        long now = System.currentTimeMillis();
         PriceConfirmed result = null;
-        SetupEvent event;
-        while ((event = queue.poll()) != null) {
+        for (java.util.Iterator<SetupEvent> it = queue.iterator(); it.hasNext(); ) {
+            SetupEvent event = it.next();
+            if (event.isExpired(now)) {
+                it.remove();
+                continue;
+            }
             if (event.quantity() <= 0) continue;
             double pricePerUnit = event.totalCoins() / event.quantity();
             double diffPercent = Math.abs(pricePerUnit - expectedPricePerUnit) / expectedPricePerUnit * 100.0;
             if (diffPercent <= tolerancePercent) {
                 result = new PriceConfirmed(event.quantity(), pricePerUnit, event.itemDisplayName());
+                it.remove();
             }
         }
         return result;

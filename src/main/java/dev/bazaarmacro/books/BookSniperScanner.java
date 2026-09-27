@@ -109,9 +109,15 @@ public final class BookSniperScanner {
      * "ULTIMATE_" is a whole qualifier segment shared across many enchant tags (also seen on
      * {@code ULTIMATE_CROP_FEVER}, {@code ULTIMATE_WISE}), it's plausible Hypixel's search - or the
      * item's real display name - doesn't include that word at all. Rather than swap one guess for
-     * another, every caller tries each candidate here in turn and only ever commits to whichever
-     * one a real search result actually confirms (by both name and price) - see
-     * {@code LegionCraftScript.placeBuyOrder}/{@code BookFlipperEngine.placeBuyOrderForCandidate}.
+     * another, a caller tries each candidate here in turn and only ever commits to whichever one a
+     * real search result actually confirms, by both name and price - which is exactly the shape
+     * {@code BuyOrderEngine.Request} takes its search candidates in, and what
+     * {@code BuyOrderEngine.locateVerifiedResult} does with them.
+     *
+     * <p>Nothing calls this right now: the only caller was the Legion craft script, and the test
+     * harness that replaced it buys a plain item whose search text is simply its display name.
+     * Kept because it is the correct input for the engine's candidate API the moment any
+     * book-trading strategy comes back.
      */
     public static List<String> deriveSearchTextCandidates(String tag) {
         String full = deriveLooseSearchText(tag);

@@ -38,7 +38,7 @@ public final class MacroExecutor {
             ClientUtils.sendMessage("§cCan't run a macro while the flipper is active - run §f/bfm stop§c first.");
             return;
         }
-        if (dev.bazaarmacro.craft.LegionCraftScript.isActive()) {
+        if (dev.bazaarmacro.order.FlipTestScript.isActive()) {
             ClientUtils.sendMessage("§cCan't run a macro while the Legion craft script is active - run §f/bfm legion stop§c first.");
             return;
         }

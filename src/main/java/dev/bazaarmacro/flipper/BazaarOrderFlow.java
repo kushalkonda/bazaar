@@ -19,7 +19,7 @@ import java.util.function.BooleanSupplier;
  *
  * <p>Each of these previously existed as a byte-identical private copy inside
  * {@link FlipperEngine}, the order engines in {@code dev.bazaarmacro.order}, and
- * {@link dev.bazaarmacro.craft.LegionCraftScript} - once a private copy inside each of five
+ * {@link dev.bazaarmacro.order.FlipTestScript} - once a private copy inside each of five
  * separate engines, which is exactly how a fix landing in one and not the others became a
  * recurring pattern in this project. Consolidating them is safe precisely because they were identical: the
  * bodies here are those same bodies, not a rewrite.

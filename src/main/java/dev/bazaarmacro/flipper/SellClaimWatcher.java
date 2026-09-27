@@ -26,7 +26,14 @@ public final class SellClaimWatcher {
     private static final Pattern CLAIM_PATTERN =
             Pattern.compile("(?i)\\[Bazaar] Claimed ([\\d,]+) coins from selling (\\d+)x (.+?) at ([\\d.,]+) each!");
 
-    private record ClaimedProceeds(long coins, String itemDisplayName, long quantity, double pricePerUnit) {
+    /** How long an unmatched claim stays available to a later drain before being dropped as stale - see {@link #drainMatching}. */
+    private static final long EVENT_TTL_MS = 60_000;
+
+    private record ClaimedProceeds(long coins, String itemDisplayName, long quantity, double pricePerUnit,
+                                    long receivedAtMs) {
+        boolean isExpired(long now) {
+            return now - receivedAtMs > EVENT_TTL_MS;
+        }
     }
 
     private static final ConcurrentLinkedQueue<ClaimedProceeds> PENDING = new ConcurrentLinkedQueue<>();
@@ -44,7 +51,8 @@ public final class SellClaimWatcher {
                     long coins = Long.parseLong(m.group(1).replace(",", ""));
                     long qty = Long.parseLong(m.group(2));
                     double pricePerUnit = Double.parseDouble(m.group(4).replace(",", ""));
-                    PENDING.add(new ClaimedProceeds(coins, m.group(3).trim(), qty, pricePerUnit));
+                    PENDING.add(new ClaimedProceeds(coins, m.group(3).trim(), qty, pricePerUnit,
+                            System.currentTimeMillis()));
                 } catch (NumberFormatException ignored) {
                 }
             }
@@ -52,17 +60,27 @@ public final class SellClaimWatcher {
     }
 
     /**
-     * Drains every claim confirmation queued since the last call, returning the total that
-     * matches {@code itemDisplayName} (case-insensitive). A non-matching entry (a different item
-     * - e.g. the user manually selling something else mid-session) is discarded, not attributed;
-     * it's never re-queued, so a mismatched name shouldn't be treated as evidence of anything.
+     * Returns the total of every queued claim confirmation matching {@code itemDisplayName}
+     * (case-insensitive), consuming only those.
+     *
+     * <p>Anything that doesn't match is left queued rather than discarded. An earlier version
+     * polled the queue empty regardless, which meant whichever matcher ran first destroyed the
+     * evidence any later one needed - the same defect that, in {@code OrderSetupWatcher}, made the
+     * buy engine believe a successful order had failed and place it a second time. Only genuinely
+     * stale entries ({@link #EVENT_TTL_MS}) are dropped, so nothing accumulates forever.
      */
     public static long drainMatching(String itemDisplayName) {
+        long now = System.currentTimeMillis();
         long total = 0;
-        ClaimedProceeds claim;
-        while ((claim = PENDING.poll()) != null) {
+        for (java.util.Iterator<ClaimedProceeds> it = PENDING.iterator(); it.hasNext(); ) {
+            ClaimedProceeds claim = it.next();
+            if (claim.isExpired(now)) {
+                it.remove();
+                continue;
+            }
             if (itemDisplayName != null && claim.itemDisplayName().equalsIgnoreCase(itemDisplayName)) {
                 total += claim.coins();
+                it.remove();
             }
         }
         return total;
@@ -75,12 +93,18 @@ public final class SellClaimWatcher {
      * {@code tolerancePercent} of {@code expectedPricePerUnit} instead of matching by name.
      */
     public static long drainMatchingByPrice(double expectedPricePerUnit, double tolerancePercent) {
+        long now = System.currentTimeMillis();
         long total = 0;
-        ClaimedProceeds claim;
-        while ((claim = PENDING.poll()) != null) {
+        for (java.util.Iterator<ClaimedProceeds> it = PENDING.iterator(); it.hasNext(); ) {
+            ClaimedProceeds claim = it.next();
+            if (claim.isExpired(now)) {
+                it.remove();
+                continue;
+            }
             double diffPercent = Math.abs(claim.pricePerUnit() - expectedPricePerUnit) / expectedPricePerUnit * 100.0;
             if (diffPercent <= tolerancePercent) {
                 total += claim.coins();
+                it.remove();
             }
         }
         return total;

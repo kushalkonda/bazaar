@@ -51,8 +51,8 @@ public final class MacroRecorder {
             ClientUtils.sendMessage("§cThe flipper is currently active - stop it with §f/bfm stop§c first.");
             return false;
         }
-        if (dev.bazaarmacro.craft.LegionCraftScript.isActive()) {
-            ClientUtils.sendMessage("§cThe Legion craft script is currently active - stop it with §f/bfm legion stop§c first.");
+        if (dev.bazaarmacro.order.FlipTestScript.isActive()) {
+            ClientUtils.sendMessage("§cThe flip test is currently running - stop it with §f/bfm test stop§c first.");
             return false;
         }
 
