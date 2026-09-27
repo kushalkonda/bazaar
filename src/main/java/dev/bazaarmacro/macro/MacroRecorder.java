@@ -51,18 +51,6 @@ public final class MacroRecorder {
             ClientUtils.sendMessage("§cThe flipper is currently active - stop it with §f/bfm stop§c first.");
             return false;
         }
-        if (dev.bazaarmacro.craft.ScubaCraftScript.isActive()) {
-            ClientUtils.sendMessage("§cThe Scuba craft script is currently active - stop it with §f/bfm craft stop§c first.");
-            return false;
-        }
-        if (dev.bazaarmacro.craft.ScubaSellEngine.isActive()) {
-            ClientUtils.sendMessage("§cThe Scuba sell engine is currently active - stop it with §f/bfm sell stop§c first.");
-            return false;
-        }
-        if (dev.bazaarmacro.books.BookFlipperEngine.isActive()) {
-            ClientUtils.sendMessage("§cBook Flipper is currently active - stop it with §f/bfm books stop§c first.");
-            return false;
-        }
         if (dev.bazaarmacro.craft.LegionCraftScript.isActive()) {
             ClientUtils.sendMessage("§cThe Legion craft script is currently active - stop it with §f/bfm legion stop§c first.");
             return false;

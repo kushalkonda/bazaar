@@ -70,7 +70,7 @@ public final class SellClaimWatcher {
 
     /**
      * Price-aware counterpart of {@link #drainMatching}, for callers (e.g. {@code
-     * BookFlipperEngine}) that can't reliably know an item's real Hypixel display name in advance
+     * the order engines) that can't reliably know an item's real Hypixel display name in advance
      * - see the Book Flipper plan. Sums every claim whose own "at Z each" price is within
      * {@code tolerancePercent} of {@code expectedPricePerUnit} instead of matching by name.
      */

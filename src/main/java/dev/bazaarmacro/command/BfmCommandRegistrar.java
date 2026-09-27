@@ -10,11 +10,8 @@ import dev.bazaarmacro.alerts.PriceAlert;
 import dev.bazaarmacro.alerts.PriceAlertManager;
 import dev.bazaarmacro.bazaar.BazaarPriceClient;
 import dev.bazaarmacro.bazaar.HypixelBazaarClient;
-import dev.bazaarmacro.books.BookFlipperEngine;
 import dev.bazaarmacro.books.BookSniperScanner;
 import dev.bazaarmacro.craft.LegionCraftScript;
-import dev.bazaarmacro.craft.ScubaCraftScript;
-import dev.bazaarmacro.craft.ScubaSellEngine;
 import dev.bazaarmacro.flipper.FlipperCoordinates;
 import dev.bazaarmacro.flipper.FlipperEngine;
 import dev.bazaarmacro.flipper.FlipperManager;
@@ -120,9 +117,7 @@ public final class BfmCommandRegistrar {
                                                         })))))
                         .then(flipCommand())
                         .then(alertCommand())
-                        .then(craftCommand())
                         .then(legionCommand())
-                        .then(sellCommand())
                         .then(booksCommand())
                         .then(errorsCommand())
                         .then(ClientCommands.literal("scan").executes(ctx -> {
@@ -244,27 +239,9 @@ public final class BfmCommandRegistrar {
     }
 
     /**
-     * {@code /bfm craft scuba} - v0 hardcoded Scuba enchant-book craft/merge/store script, see
-     * {@link ScubaCraftScript}. {@code /bfm craft stop} is a dedicated stop rather than routing
-     * through the generic {@code /bfm stop}, since {@link #stopWhateverIsActive()} already checks
-     * {@link ScubaCraftScript#isActive()} too - either works, this is just a shorter, discoverable form.
-     */
-    private static LiteralArgumentBuilder<FabricClientCommandSource> craftCommand() {
-        return ClientCommands.literal("craft")
-                .then(ClientCommands.literal("scuba").executes(ctx -> {
-                    ScubaCraftScript.start();
-                    return 1;
-                }))
-                .then(ClientCommands.literal("stop").executes(ctx -> {
-                    ScubaCraftScript.stop();
-                    return 1;
-                }));
-    }
-
-    /**
      * {@code /bfm legion craft} - repeating buy-16/merge-to-level-5/sell-order pipeline for
      * Ultimate Legion books, see {@link LegionCraftScript}. {@code /bfm legion stop} is a
-     * dedicated stop, mirroring {@code craftCommand}'s pattern; {@link #stopWhateverIsActive()}
+     * dedicated stop; {@link #stopWhateverIsActive()}
      * checks it too.
      */
     private static LiteralArgumentBuilder<FabricClientCommandSource> legionCommand() {
@@ -280,39 +257,14 @@ public final class BfmCommandRegistrar {
     }
 
     /**
-     * {@code /bfm sell scuba} - keeps every level-5 Scuba book currently held listed as a Bazaar
-     * Sell Offer at the top of the book, re-pricing on any undercut, until manually stopped - see
-     * {@link ScubaSellEngine}. {@code /bfm sell stop} is a dedicated stop, mirroring
-     * {@code craftCommand}'s pattern; {@link #stopWhateverIsActive()} checks it too.
-     */
-    private static LiteralArgumentBuilder<FabricClientCommandSource> sellCommand() {
-        return ClientCommands.literal("sell")
-                .then(ClientCommands.literal("scuba").executes(ctx -> {
-                    ScubaSellEngine.start();
-                    return 1;
-                }))
-                .then(ClientCommands.literal("stop").executes(ctx -> {
-                    ScubaSellEngine.stop();
-                    return 1;
-                }));
-    }
-
-    /**
-     * {@code /bfm books scan} - temporary diagnostic (see the Book Flipper plan's phased build
-     * order) that runs {@link BookSniperScanner} and prints its real candidate list to chat, so
-     * the scan's actual output can be checked against the real Bazaar before any order-placement
-     * logic is built on top of it.
+     * {@code /bfm books scan} / {@code locate} - read-only analysis over the real Bazaar via
+     * {@link BookSniperScanner}: which rare books currently clear the margin and volume floors, and
+     * what a given candidate's real search result looks like in-game. Places no orders; the engine
+     * that traded off this was removed in the engine rewrite, leaving the scanner as the research
+     * tool it always was.
      */
     private static LiteralArgumentBuilder<FabricClientCommandSource> booksCommand() {
         return ClientCommands.literal("books")
-                .then(ClientCommands.literal("start").executes(ctx -> {
-                    BookFlipperEngine.start();
-                    return 1;
-                }))
-                .then(ClientCommands.literal("stop").executes(ctx -> {
-                    BookFlipperEngine.stop();
-                    return 1;
-                }))
                 .then(ClientCommands.literal("scan").executes(ctx -> {
                     scanBooks();
                     return 1;
@@ -558,20 +510,8 @@ public final class BfmCommandRegistrar {
             FlipperEngine.stop();
             return;
         }
-        if (ScubaCraftScript.isActive()) {
-            ScubaCraftScript.stop();
-            return;
-        }
         if (LegionCraftScript.isActive()) {
             LegionCraftScript.stop();
-            return;
-        }
-        if (ScubaSellEngine.isActive()) {
-            ScubaSellEngine.stop();
-            return;
-        }
-        if (BookFlipperEngine.isActive()) {
-            BookFlipperEngine.stop();
             return;
         }
         MacroExecutor.stop();

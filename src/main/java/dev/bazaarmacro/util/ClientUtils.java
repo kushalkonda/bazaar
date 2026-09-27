@@ -328,6 +328,27 @@ public final class ClientUtils {
         return !slots.get(slotIndex).getItem().isEmpty();
     }
 
+    /** How many slots the currently open container screen has, or 0 if none is open. Lets a caller scan a whole menu without assuming its size. */
+    public static int openScreenSlotCount() {
+        AbstractContainerScreen<?> screen = getOpenContainerScreen();
+        return screen == null || screen.getMenu() == null ? 0 : screen.getMenu().slots.size();
+    }
+
+    /**
+     * The colour-stripped display name of a slot in the open screen, or "" if empty/out of range.
+     * Hypixel puts real information in these - a live Bazaar order is literally named
+     * {@code "SELL Jolly Pink Rock"} (confirmed from a real captured menu dump) - so reading the
+     * name is how an order's side and item are identified, rather than assuming which slot it sits in.
+     */
+    public static String getOpenSlotName(int slotIndex) {
+        AbstractContainerScreen<?> screen = getOpenContainerScreen();
+        if (screen == null || screen.getMenu() == null) return "";
+        List<Slot> slots = screen.getMenu().slots;
+        if (slotIndex < 0 || slotIndex >= slots.size()) return "";
+        ItemStack stack = slots.get(slotIndex).getItem();
+        return stack.isEmpty() ? "" : stripColors(stack.getHoverName().getString());
+    }
+
     /**
      * Diagnostic only: dumps every non-empty main-inventory slot's vanilla item id, resolved
      * SkyBlock id (whatever {@link #resolveSkyblockId} comes up with, including {@code null}),

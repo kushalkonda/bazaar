@@ -18,11 +18,10 @@ import java.util.function.BooleanSupplier;
  * listed in the manage-orders menu, and re-reading a just-placed order's real price.
  *
  * <p>Each of these previously existed as a byte-identical private copy inside
- * {@link FlipperEngine}, {@link dev.bazaarmacro.craft.ScubaSellEngine},
- * {@link dev.bazaarmacro.craft.ScubaCraftScript}, {@link dev.bazaarmacro.craft.LegionCraftScript}
- * and {@link dev.bazaarmacro.books.BookFlipperEngine} - five copies that had to be kept in sync by
- * hand, which is exactly how a fix landing in one engine and not the others became a recurring
- * pattern in this project. Consolidating them is safe precisely because they were identical: the
+ * {@link FlipperEngine}, the order engines in {@code dev.bazaarmacro.order}, and
+ * {@link dev.bazaarmacro.craft.LegionCraftScript} - once a private copy inside each of five
+ * separate engines, which is exactly how a fix landing in one and not the others became a
+ * recurring pattern in this project. Consolidating them is safe precisely because they were identical: the
  * bodies here are those same bodies, not a rewrite.
  *
  * <p>What is <em>not</em> pulled in here is anything that genuinely differs between engines - how
@@ -135,10 +134,21 @@ public final class BazaarOrderFlow {
      * can rather than trusting it.
      */
     public static double refreshPlacedSellPrice(String itemTag, double preClickEstimate) {
+        return refreshPlacedPrice(itemTag, FlipperSide.SELL_OFFER, preClickEstimate);
+    }
+
+    /** Buy-side counterpart of {@link #refreshPlacedSellPrice} - same caveat applies. */
+    public static double refreshPlacedBuyPrice(String itemTag, double preClickEstimate) {
+        return refreshPlacedPrice(itemTag, FlipperSide.BUY_ORDER, preClickEstimate);
+    }
+
+    private static double refreshPlacedPrice(String itemTag, FlipperSide side, double preClickEstimate) {
         HypixelBazaarClient.invalidateCache();
         try {
-            FlipperManager.TopCheckResult fresh = FlipperManager.checkTop(itemTag, FlipperSide.SELL_OFFER, 0);
-            return Math.max(0.1, fresh.topPrice() - FlipperSettings.get().priceIncrement);
+            FlipperManager.TopCheckResult fresh = FlipperManager.checkTop(itemTag, side, 0);
+            return side == FlipperSide.BUY_ORDER
+                    ? fresh.topPrice() + FlipperSettings.get().priceIncrement
+                    : Math.max(0.1, fresh.topPrice() - FlipperSettings.get().priceIncrement);
         } catch (Exception e) {
             return preClickEstimate;
         }

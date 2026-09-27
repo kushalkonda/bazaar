@@ -38,18 +38,6 @@ public final class MacroExecutor {
             ClientUtils.sendMessage("§cCan't run a macro while the flipper is active - run §f/bfm stop§c first.");
             return;
         }
-        if (dev.bazaarmacro.craft.ScubaCraftScript.isActive()) {
-            ClientUtils.sendMessage("§cCan't run a macro while the Scuba craft script is active - run §f/bfm craft stop§c first.");
-            return;
-        }
-        if (dev.bazaarmacro.craft.ScubaSellEngine.isActive()) {
-            ClientUtils.sendMessage("§cCan't run a macro while the Scuba sell engine is active - run §f/bfm sell stop§c first.");
-            return;
-        }
-        if (dev.bazaarmacro.books.BookFlipperEngine.isActive()) {
-            ClientUtils.sendMessage("§cCan't run a macro while Book Flipper is active - run §f/bfm books stop§c first.");
-            return;
-        }
         if (dev.bazaarmacro.craft.LegionCraftScript.isActive()) {
             ClientUtils.sendMessage("§cCan't run a macro while the Legion craft script is active - run §f/bfm legion stop§c first.");
             return;

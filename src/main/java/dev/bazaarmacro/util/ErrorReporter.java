@@ -17,8 +17,8 @@ import java.util.stream.Stream;
 
 /**
  * Durable, self-contained crash/anomaly reports for every autonomous engine in this mod
- * ({@code FlipperEngine}, {@code ScubaCraftScript}, {@code ScubaSellEngine},
- * {@code LegionCraftScript}, {@code BookFlipperEngine}) - built so a real failure leaves behind
+ * ({@code FlipperEngine}, {@code BuyOrderEngine}, {@code SellOrderEngine},
+ * {@code LegionCraftScript}) - built so a real failure leaves behind
  * more than a single chat line and whatever happens to still be in {@code latest.log} by the time
  * anyone looks. Every report is a plain-text file under
  * {@code config/bazaarmacro/crash-logs/<source>_<timestamp>.log} containing the failure reason,

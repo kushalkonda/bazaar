@@ -221,18 +221,6 @@ public final class FlipperEngine {
             ClientUtils.sendMessage("§cCan't start the flipper while recording - run §f/bfm record stop§c first.");
             return false;
         }
-        if (dev.bazaarmacro.craft.ScubaCraftScript.isActive()) {
-            ClientUtils.sendMessage("§cThe Scuba craft script is running - stop it with §f/bfm craft stop§c first.");
-            return false;
-        }
-        if (dev.bazaarmacro.craft.ScubaSellEngine.isActive()) {
-            ClientUtils.sendMessage("§cThe Scuba sell engine is running - stop it with §f/bfm sell stop§c first.");
-            return false;
-        }
-        if (dev.bazaarmacro.books.BookFlipperEngine.isActive()) {
-            ClientUtils.sendMessage("§cBook Flipper is running - stop it with §f/bfm books stop§c first.");
-            return false;
-        }
         if (dev.bazaarmacro.craft.LegionCraftScript.isActive()) {
             ClientUtils.sendMessage("§cThe Legion craft script is running - stop it with §f/bfm legion stop§c first.");
             return false;

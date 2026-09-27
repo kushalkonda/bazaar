@@ -36,7 +36,7 @@ public final class OrderSetupWatcher {
      * Result of a {@link #drainMatchingBuyByPrice}/{@link #drainMatchingSellByPrice} call - unlike
      * the name-matching methods (which only ever confirm quantity, since {@link FlipperEngine}
      * already knows the exact name it searched for), this exists for callers like
-     * {@code BookFlipperEngine} that can't reliably know a book's real Hypixel display name in
+     * the order engines, which can't reliably know a book's real Hypixel display name in
      * advance (see the Book Flipper plan) and instead confirm identity by cross-checking this
      * message's own implied per-unit price against what they expected to place.
      */
