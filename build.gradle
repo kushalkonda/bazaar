@@ -1,0 +1,54 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version '1.17.11'
+}
+
+version = (findProperty('bazaarmacro_version') ?: '0.0.0').toString()
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    maven { url = 'https://maven.fabricmc.net/' }
+    mavenCentral()
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    def lwjglVersion = '3.4.1'
+    implementation "org.lwjgl:lwjgl-nanovg:${lwjglVersion}"
+    include "org.lwjgl:lwjgl-nanovg:${lwjglVersion}"
+    ['windows', 'linux', 'macos', 'macos-arm64'].each { platform ->
+        implementation "org.lwjgl:lwjgl-nanovg:${lwjglVersion}:natives-${platform}"
+        include "org.lwjgl:lwjgl-nanovg:${lwjglVersion}:natives-${platform}"
+    }
+}
+
+processResources {
+    inputs.property 'version', project.version
+    inputs.property 'minecraft_version', project.minecraft_version
+    inputs.property 'loader_version', project.loader_version
+
+    filesMatching('fabric.mod.json') {
+        expand 'version': project.version,
+                'minecraft_version': project.minecraft_version,
+                'loader_version': project.loader_version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 25
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+if (file('local.gradle').exists()) {
+    apply from: 'local.gradle'
+}

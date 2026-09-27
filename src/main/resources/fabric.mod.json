@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "bazaarmacro",
+  "version": "${version}",
+  "name": "Bazaar Macro",
+  "description": "User-configurable step-based GUI automation macros for Hypixel Skyblock.",
+  "authors": [],
+  "contact": {},
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.bazaarmacro.BazaarMacroClient"
+    ]
+  },
+  "mixins": ["bazaarmacro.mixins.json"],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "~${minecraft_version}",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

@@ -1,0 +1,16 @@
+{
+    "required": true,
+    "package": "dev.bazaarmacro.mixin",
+    "compatibilityLevel": "JAVA_25",
+    "refmap": "bazaarmacro-refmap.json",
+    "client": [
+        "AccessorAbstractContainerScreen",
+        "AccessorGlDevice",
+        "AccessorGpuDevice",
+        "MixinAbstractContainerScreenRecorder",
+        "MixinGuiRenderer"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    }
+}
