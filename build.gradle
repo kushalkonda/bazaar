@@ -19,13 +19,11 @@ dependencies {
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    def lwjglVersion = '3.4.1'
-    implementation "org.lwjgl:lwjgl-nanovg:${lwjglVersion}"
-    include "org.lwjgl:lwjgl-nanovg:${lwjglVersion}"
-    ['windows', 'linux', 'macos', 'macos-arm64'].each { platform ->
-        implementation "org.lwjgl:lwjgl-nanovg:${lwjglVersion}:natives-${platform}"
-        include "org.lwjgl:lwjgl-nanovg:${lwjglVersion}:natives-${platform}"
-    }
+    // dev.bazaarmacro.core is deliberately free of Minecraft types so it can be tested on a plain
+    // JVM. That is the whole point of the package split - the previous version of this mod had no
+    // tests at all, so every bug in the money path was found by losing real coins.
+    testImplementation "org.junit.jupiter:junit-jupiter:${project.junit_version}"
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 processResources {
@@ -37,6 +35,14 @@ processResources {
         expand 'version': project.version,
                 'minecraft_version': project.minecraft_version,
                 'loader_version': project.loader_version
+    }
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events 'passed', 'failed', 'skipped'
+        exceptionFormat = 'full'
     }
 }
 
